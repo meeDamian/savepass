@@ -1,0 +1,43 @@
+{
+  "name": "savepass",
+  "version": "0.0.1",
+  "description": "CLI tool archiving your keybase.io-encrypted password to Google Drive",
+  "main": "index.coffee",
+  "preferGlobal": true,
+  "scripts": {
+    "start": "coffee index.coffee",
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/chester1000/savepass.git"
+  },
+  "keywords": [
+    "password",
+    "keybase",
+    "archive",
+    "encrypt",
+    "cli"
+  ],
+  "author": "Damian Mee (mee.damian@gmail.com)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chester1000/savepass/issues"
+  },
+  "homepage": "https://github.com/chester1000/savepass#readme",
+  "dependencies": {
+    "async": "^1.0.0",
+    "fs-extra": "^0.18.4",
+    "inquirer": "^0.8.5",
+    "meow": "^3.1.0"
+  },
+  "peerDependencies": {
+    "keybase": "^0.7.8",
+    "coffee-script": "^1.9.2"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-coffeelint": "^0.5.0",
+    "gulp-load-plugins": "^0.10.0"
+  }
+}
