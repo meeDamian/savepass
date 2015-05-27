@@ -4,6 +4,7 @@
 inquirer  = require 'inquirer'
 {exec}    = require 'child_process'
 async     = require 'async'
+chalk     = require 'chalk'
 meow      = require 'meow'
 path      = require 'path'
 fs        = require 'fs-extra'
@@ -39,6 +40,9 @@ logJson = (obj) -> log toJson obj
 # utilities
 #
 getHomeDir = -> process.env.HOME or process.env.USERPROFILE
+getConfigPath = (name = 'savepass') -> path.join getHomeDir(), "/.config/#{name}/config.json"
+getOutputDir = ->
+  path.resolve unless config.path then OUTPUTS_DIR else config.path.replace /^~/, getHomeDir()
 
 
 getQuestionFor = (fieldType) ->
@@ -62,7 +66,7 @@ getConfig = (name = 'keybase', cb) ->
   else if name is 'self'
     name = 'savepass'
 
-  fs.readJson path.join(getHomeDir(), "/.config/#{name}/config.json"), cb
+  fs.readJson getConfigPath(name), cb
 
 
 config = {}
@@ -130,8 +134,29 @@ readTemplates = (next) ->
 
 cli = meow
   help: [
-    'Usage'
-    '  savepass <input>'
+    'Usage: ' + chalk.bold 'savepass <command>'
+    ''
+    'where <command> is one of:'
+    '    add, new, list, ls,'
+    '    remove*, rm*, get*'
+    ''
+    'Example Usage:'
+    '    savepass add [OPTIONAL <flags>]'
+    '    savepass ls'
+    ''
+    'Available ' + chalk.bold('add|new') + ' subcomand flags:'
+    '    ' + chalk.bold('--template') + '=<templateName>'
+    '        Specify template name to be used. Available templates can be'
+    '        found in `templates/` folder.'
+    '    ' + chalk.bold('--keybase-user') + '=<keybaseUsername>'
+    '        Encrypt output file for a different user then the one logged in.'
+    '    ' + (chalk.bold("--#{f}") for f of AVAILABLE_FIELDS).join ', '
+    '        Using those flags you can pass values, to be filled into a'
+    '        template, directly from CLI. All flags accept strings or "null" to disable.'
+    '        ' + chalk.bold('Flag --password can only be set to null')
+    ''
+    'Specify configs in the json-formatted file:'
+    '    ' + getConfigPath()
   ].join '\n'
 
 log 'cli flags:', cli.input, toJson cli.flags
@@ -177,7 +202,7 @@ async.parallel [
           name: 'confirm'
           type: 'confirm'
           message: (prevAnswer) ->
-            outputDir = path.resolve unless config.path then OUTPUTS_DIR else config.path.replace /^~/, getHomeDir()
+            outputDir = getOutputDir()
 
             log 'Output files dir:', outputDir
 
@@ -303,19 +328,32 @@ async.parallel [
         when 1 then step2 matchingTemplates[0] # exactly one match
         else step1 matchingTemplates # more than one match
 
-
-    when 'delete', 'remove', 'rm'
-      log 'rm'
-
     when 'list', 'ls'
       log 'ls'
 
-    when 'file'
-      log 'file'
+      fs.readdir getOutputDir(), (err, files) ->
+        if err
+          console.error err
+          return
 
+        fileList = files
+          .filter (fileName) -> /\.enc\.txt$/.test fileName
+          .map (fileName) ->
+            [ ''
+              chalk.green '*'
+              chalk.bold (
+                fileName
+                  .replace /\.enc\.txt$/, ''
+                  .replace /[-_]/g, ' '
+              )
+              chalk.dim " (#{fileName})"
+            ].join ' '
 
+          .join '\n'
 
-# process.exit 0
+        console.log "Your encrypted files: (from #{chalk.bold getOutputDir()})\n"
+        console.log fileList
+
 
 ###
 
