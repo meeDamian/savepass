@@ -30,8 +30,7 @@ gulp.task 'postpublish', ->
     console.log err, paths
 
 gulp.task 'publish', g.shell.task [
-    'npm version patch'
-    'npm publish'
+    'npm version patch && npm publish'
   ]
 
 
