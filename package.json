@@ -35,8 +35,7 @@
     "meow": "^3.1.0"
   },
   "peerDependencies": {
-    "keybase": "^0.7.8",
-    "coffee-script": "^1.9.2"
+    "keybase": "^0.7.8"
   },
   "devDependencies": {
     "del": "^1.2.0",

@@ -1,2 +1,3 @@
 *.coffee
 ~package.jsontmp
+tmp/
