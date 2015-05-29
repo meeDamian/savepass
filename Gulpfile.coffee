@@ -8,7 +8,7 @@ gulp.task 'bump', g.shell.task ['npm version patch']
 gulp.task 'compile', ['javascriptize'], ->
   gulp.src ['*.coffee', '!Gulpfile.coffee']
     .pipe g.coffee(bare: true).on 'error', g.util?.log
-    .pipe g.insert.prepend '#!/usr/bin/env node'
+    .pipe g.insert.prepend '#!/usr/bin/env node\n'
     .pipe gulp.dest '.'
 
 gulp.task 'javascriptize', ['bump'], ->
@@ -27,11 +27,12 @@ gulp.task 'postpublish', ->
     .pipe gulp.dest '.'
 
   del ['*.js', 'tmp'], (err, paths) ->
-    f = paths.map (f) ->
-      ' * ' + f
-    .join '\n'
+    f = paths.map (f) -> ' * ' + f
+      .join '\n'
 
-    console.log 'removed build files:\n', f if f
+    if f
+      console.log 'removed build files:\n'
+      console.log f
 
 gulp.task 'publish', ['prepublish'], g.shell.task [
     'npm publish'
