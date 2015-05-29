@@ -3,7 +3,7 @@ del   = require 'del'
 g     = require('gulp-load-plugins')()
 
 
-gulp.task 'compile', ->
+gulp.task 'compile', ['javascriptize'] ->
   gulp.src ['*.coffee', '!Gulpfile.coffee']
     .pipe g.coffee(bare: true).on 'error', g.util?.log
     .pipe gulp.dest '.'
@@ -13,13 +13,9 @@ gulp.task 'javascriptize', ->
     .pipe gulp.dest 'tmp'
     .pipe g.jsonEditor main: 'index.js'
     .pipe g.jsonEditor scripts: start: 'node index.js'
-
     .pipe gulp.dest '.'
 
-gulp.task 'postversion', [
-  'javascriptize'
-  'compile'
-]
+gulp.task 'postversion', ['compile']
 
 gulp.task 'postpublish', ->
   ###
