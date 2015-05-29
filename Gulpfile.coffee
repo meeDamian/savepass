@@ -15,6 +15,7 @@ gulp.task 'javascriptize', ['bump'], ->
     .pipe gulp.dest 'tmp'
     .pipe g.jsonEditor main: 'index.js'
     .pipe g.jsonEditor scripts: start: 'node index.js'
+    .pipe g.jsonEditor bin: savepass: './index.js'
     .pipe gulp.dest '.'
 
 gulp.task 'prepublish', ['compile']

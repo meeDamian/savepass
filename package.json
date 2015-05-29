@@ -9,6 +9,9 @@
     "test": "gulp test",
     "postpublish": "gulp postpublish"
   },
+  "bin": {
+    "savepass": "./index.coffee"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/chester1000/savepass.git"
