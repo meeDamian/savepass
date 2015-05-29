@@ -3,7 +3,7 @@ del   = require 'del'
 g     = require('gulp-load-plugins')()
 
 
-gulp.task 'bump', g.shell.task ['npm version minor']
+gulp.task 'bump', g.shell.task ['npm version patch']
 
 gulp.task 'compile', ['javascriptize'], ->
   gulp.src ['*.coffee', '!Gulpfile.coffee']
@@ -26,7 +26,11 @@ gulp.task 'postpublish', ->
     .pipe gulp.dest '.'
 
   del ['*.js', 'tmp'], (err, paths) ->
-    console.log 'aaa', err, paths
+    f = paths.map (f) ->
+      ' * ' + f
+    .join '\n'
+
+    console.log 'removed files:', f if f
 
 gulp.task 'publish', ['prepublish'], g.shell.task [
     'npm publish'
