@@ -25,8 +25,7 @@ gulp.task 'postpublish', ->
   del ['*.js', 'tmp'], (err, paths) ->
     console.log 'aaa', err, paths
 
-gulp.task 'publish', ['prepublish'], ->
-  g.shell [
+gulp.task 'publish', ['prepublish'], g.shell.task [
     'npm version minor'
     'npm publish'
   ]
