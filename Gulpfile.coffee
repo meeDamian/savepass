@@ -17,18 +17,18 @@ gulp.task 'javascriptize', ->
     .pipe gulp.dest '.'
 
 gulp.task 'postversion', [
-  'compile'
   'javascriptize'
+  'compile'
 ]
 
-###
 gulp.task 'postpublish', ->
+  ###
   gulp.src 'tmp/package.json'
     .pipe gulp.dest '.'
 
   del ['*.js', 'tmp'], (err, paths) ->
-    console.log err, paths
-###
+  ###
+  console.log err, paths
 
 
 gulp.task 'publish', g.shell.task [
