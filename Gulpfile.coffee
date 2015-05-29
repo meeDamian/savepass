@@ -16,7 +16,7 @@ gulp.task 'javascriptize', ->
 
     .pipe gulp.dest '.'
 
-gulp.task 'prepublish', [
+gulp.task 'postversion', [
   'compile'
   'javascriptize'
 ]
@@ -28,6 +28,11 @@ gulp.task 'postpublish', ->
 
   del ['*.js', 'tmp'], (err, paths) ->
     console.log err, paths
+
+gulp.task 'publish', g.shell.task [
+    'npm version patch'
+    'npm publish'
+  ]
 
 
 gulp.task 'lint', ->

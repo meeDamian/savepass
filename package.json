@@ -7,7 +7,7 @@
   "scripts": {
     "start": "coffee index.coffee",
     "test": "gulp test",
-    "prepublish": "gulp prepublish",
+    "postversion": "gulp postversion",
     "postpublish": "gulp postpublish"
   },
   "repository": {
@@ -44,6 +44,7 @@
     "gulp-coffeelint": "^0.5.0",
     "gulp-json-editor": "^2.2.1",
     "gulp-load-plugins": "^0.10.0",
+    "gulp-shell": "^0.4.1",
     "gulp-util": "^3.0.4"
   }
 }
