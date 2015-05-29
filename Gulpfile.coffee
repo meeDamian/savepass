@@ -21,13 +21,15 @@ gulp.task 'postversion', [
   'javascriptize'
 ]
 
-
+###
 gulp.task 'postpublish', ->
   gulp.src 'tmp/package.json'
     .pipe gulp.dest '.'
 
   del ['*.js', 'tmp'], (err, paths) ->
     console.log err, paths
+###
+
 
 gulp.task 'publish', g.shell.task [
     'npm version patch && npm publish'
