@@ -1,7 +1,7 @@
 {
   "name": "@meedamian/savepass",
-  "version": "0.0.1",
-  "description": "CLI tool archiving your keybase.io-encrypted password to Google Drive",
+  "version": "0.1.0",
+  "description": "CLI tool archiving your keybase.io-encrypted data to Google Drive",
   "main": "index.coffee",
   "preferGlobal": true,
   "scripts": {
@@ -19,7 +19,7 @@
     "encrypt",
     "cli"
   ],
-  "author": "Damian Mee (mee.damian@gmail.com)",
+  "author": "Damian Mee <mee.damian@gmail.com> (http://meedamian.com)",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/chester1000/savepass/issues"
