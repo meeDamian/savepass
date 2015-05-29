@@ -7,7 +7,6 @@
   "scripts": {
     "start": "coffee index.coffee",
     "test": "gulp test",
-    "preversion": "gulp preversion",
     "postpublish": "gulp postpublish"
   },
   "repository": {
