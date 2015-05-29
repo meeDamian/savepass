@@ -15,7 +15,8 @@ gulp.task 'javascriptize', ->
     .pipe g.jsonEditor scripts: start: 'node index.js'
     .pipe gulp.dest '.'
 
-gulp.task 'prepublish', ['compile']
+gulp.task 'preversion', ['compile']
+
 
 gulp.task 'postpublish', ->
   gulp.src 'tmp/package.json'
@@ -23,11 +24,6 @@ gulp.task 'postpublish', ->
 
   del ['*.js', 'tmp'], (err, paths) ->
     console.log 'aaa', err, paths
-
-
-gulp.task 'publish', g.shell.task [
-    'npm version patch && npm publish'
-  ]
 
 
 gulp.task 'lint', ->
