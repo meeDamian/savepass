@@ -3,7 +3,7 @@ del   = require 'del'
 g     = require('gulp-load-plugins')()
 
 
-gulp.task 'compile', ['javascriptize'] ->
+gulp.task 'compile', ['javascriptize'], ->
   gulp.src ['*.coffee', '!Gulpfile.coffee']
     .pipe g.coffee(bare: true).on 'error', g.util?.log
     .pipe gulp.dest '.'
