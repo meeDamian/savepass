@@ -3,12 +3,14 @@ del   = require 'del'
 g     = require('gulp-load-plugins')()
 
 
+gulp.task 'bump', g.shell.task ['npm version minor']
+
 gulp.task 'compile', ['javascriptize'], ->
   gulp.src ['*.coffee', '!Gulpfile.coffee']
     .pipe g.coffee(bare: true).on 'error', g.util?.log
     .pipe gulp.dest '.'
 
-gulp.task 'javascriptize', ->
+gulp.task 'javascriptize', ['bump'], ->
   gulp.src 'package.json'
     .pipe gulp.dest 'tmp'
     .pipe g.jsonEditor main: 'index.js'
@@ -26,7 +28,6 @@ gulp.task 'postpublish', ->
     console.log 'aaa', err, paths
 
 gulp.task 'publish', ['prepublish'], g.shell.task [
-    'npm version minor'
     'npm publish'
   ]
 
