@@ -31,7 +31,7 @@ gulp.task 'postpublish', ->
       .join '\n'
 
     if f
-      console.log 'removed build files:\n'
+      console.log 'removed build files:'
       console.log f
 
 gulp.task 'publish', ['prepublish'], g.shell.task [
