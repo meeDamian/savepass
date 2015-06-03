@@ -150,7 +150,7 @@ getEncryptedFilesList = (cb) ->
 
     cb null, fileList
 
-colorFilesList = (files, opts={}) ->
+colorFilesList = (files, opts = {}) ->
   opts.leadingAsterix ?= true
   opts.returnAsKeyValue ?= false
 
@@ -159,9 +159,9 @@ colorFilesList = (files, opts={}) ->
       l = ['']
       l.push chalk.green '*' if opts.leadingAsterix
       l.push chalk.bold(
-          fileName
-            .replace new RegExp(getExtension() + '$'), ''
-            .replace /[-_]/g, ' '
+        fileName
+          .replace new RegExp(getExtension() + '$'), ''
+          .replace /[-_]/g, ' '
         ), chalk.dim "(#{fileName})"
       l = l.join ' '
 
