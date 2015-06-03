@@ -44,6 +44,8 @@ getConfigPath = (name = 'savepass') -> path.join getHomeDir(), "/.config/#{name}
 getOutputDir = ->
   path.resolve unless config.path then OUTPUTS_DIR else config.path.replace /^~/, getHomeDir()
 
+getFullFilePath = (fileName) -> path.resolve getOutputDir(), fileName
+
 
 getQuestionFor = (fieldType) ->
   base = AVAILABLE_FIELDS[fieldType]
@@ -86,6 +88,9 @@ readOwnConfig = (next) ->
       log 'config (file):', toJson config
       next()
 
+getExtension = ->
+  config.extensions or DEFAULT_CONFIG.extensions
+
 templates = []
 
 filterTemplates = (filter) ->
@@ -93,8 +98,10 @@ filterTemplates = (filter) ->
 
 # read templates from `templates` dir
 readTemplates = (next) ->
+  templatesDir = path.resolve __dirname, TEMPLATES_DIR
+
   readTemplate = (template, next) ->
-    tempPath = path.resolve TEMPLATES_DIR, template
+    tempPath = path.resolve templatesDir, template
 
     fs.readFile tempPath, encoding: 'utf8', (err, fileContent) ->
       if err
@@ -119,7 +126,7 @@ readTemplates = (next) ->
 
       next()
 
-  fs.readdir TEMPLATES_DIR, (err, files) ->
+  fs.readdir templatesDir, (err, files) ->
     if err
       console.error 'not even directory for templates exist.', toJson err
       return
@@ -132,32 +139,69 @@ readTemplates = (next) ->
       log "#{templates.length} templates read:", templates.map (t) -> t.fileName
       next()
 
+getEncryptedFilesList = (cb) ->
+  fs.readdir getOutputDir(), (err, files) ->
+    if err
+      console.error err
+      cb err
+
+    fileList = files.filter (fileName) -> new RegExp('.enc.txt$').test fileName
+    log fileList
+
+    cb null, fileList
+
+colorFilesList = (files, opts={}) ->
+  opts.leadingAsterix ?= true
+  opts.returnAsKeyValue ?= false
+
+  files
+    .map (fileName) ->
+      l = ['']
+      l.push chalk.green '*' if opts.leadingAsterix
+      l.push chalk.bold(
+          fileName
+            .replace new RegExp(getExtension() + '$'), ''
+            .replace /[-_]/g, ' '
+        ), chalk.dim "(#{fileName})"
+      l = l.join ' '
+
+      return l unless opts.returnAsKeyValue
+
+      name: l
+      value: fileName
+
+
 cli = meow
   help: [
     'Usage: ' + chalk.bold 'savepass <command>'
     ''
     'where <command> is one of:'
-    '    add, new, list, ls,'
-    '    remove*, rm*, get*'
+    '    add, new, list, ls, remove, rm'
     ''
     'Example Usage:'
     '    savepass add [OPTIONAL <flags>]'
-    '    savepass ls'
+    '    savepass --debug ls'
+    '    savepass rm --file=myBank'
     ''
-    'Available ' + chalk.bold('add|new') + ' subcomand flags:'
+    'Global flags:'
+    '    ' + chalk.bold('--debug')
+    '        Enable debug output.'
+    ''
+    chalk.bold('savepass add') + ' flags:'
     '    ' + chalk.bold('--template') + '=<templateName>'
     '        Specify template name to be used. Available templates can be'
     '        found in `templates/` folder.'
     '    ' + chalk.bold('--keybase-user') + '=<keybaseUsername>'
     '        Encrypt output file for a different user then the one logged in.'
     '    ' + (chalk.bold("--#{f}") for f of AVAILABLE_FIELDS).join ', '
-    '        Using those flags you can pass values, to be filled into a'
-    '        template, directly from CLI. All flags accept strings or "null" to disable.'
-    '        ' + chalk.bold('Flag --password can only be set to null')
+    '        Pass values from CLI or disable by passing null or false. '
+    '        ' + chalk.red('NOTE: ') + chalk.bold('--password') + ' flag can only be disabled'
     ''
     'Specify configs in the json-formatted file:'
     '    ' + getConfigPath()
   ].join '\n'
+
+DEBUG = yes if cli.flags.debug
 
 log 'cli flags:', cli.input, toJson cli.flags
 
@@ -329,30 +373,70 @@ async.parallel [
         else step1 matchingTemplates # more than one match
 
     when 'list', 'ls'
-      log 'ls'
+      getEncryptedFilesList (err, fileList) ->
+        unless err
+          fileList = colorFilesList(fileList).join '\n'
 
-      fs.readdir getOutputDir(), (err, files) ->
-        if err
-          console.error err
-          return
-
-        fileList = files
-          .filter (fileName) -> /\.enc\.txt$/.test fileName
-          .map (fileName) ->
-            [ ''
-              chalk.green '*'
-              chalk.bold (
-                fileName
-                  .replace /\.enc\.txt$/, ''
-                  .replace /[-_]/g, ' '
-              )
-              chalk.dim " (#{fileName})"
-            ].join ' '
-
-          .join '\n'
-
-        console.log "Your encrypted files: (from #{chalk.bold getOutputDir()})\n"
+        console.log "Your encrypted files (from #{chalk.bold getOutputDir()}):\n"
         console.log fileList
+
+    when 'remove', 'rm'
+
+      remove = (files, cb) ->
+        log 'Running REMOVE on: ', toJson files
+        async.map files, fs.unlink, cb
+
+      removeFiles = (files) ->
+        fullPaths = files.map getFullFilePath
+
+        remove fullPaths, (err) ->
+          if err
+            console.error 'Bummer, there was an error:', err
+            return
+
+          console.log "File#{if fullPaths.length > 1 then 's' else ''} successfully removed."
+
+
+      askConfirmation = (filesToBeRemoved) ->
+        info = if filesToBeRemoved.length is 1 then 'This file' else 'Those files'
+        info += " will be PERMANENTLY removed (from #{getOutputDir()}):"
+
+        msg = [
+          info
+          colorFilesList(filesToBeRemoved).join '\n'
+          '\nAre you sure?'
+        ].join '\n'
+
+        inquirer.prompt
+          type: 'confirm'
+          message: msg
+          name: 'confirmRemoval'
+          default: false
+
+        , (answers) ->
+          removeFiles filesToBeRemoved if answers.confirmRemoval
+
+
+      removable = cli.flags.file
+      getEncryptedFilesList (err, files) ->
+        unless removable
+          inquirer.prompt
+            type: 'checkbox'
+            name: 'fileNames'
+            message: 'Which files do you want to remove?'
+            choices: colorFilesList(files, {leadingAsterix: false, returnAsKeyValue: true})
+
+          , (answers) -> askConfirmation answers.fileNames
+
+        else
+          file = cli.flags.file
+          file += getExtension() unless new RegExp(getExtension() + '$').test file
+
+          unless file in files
+            console.error 'Provided file not found in ' # add dir
+            return
+
+          askConfirmation [ file ]
 
 
 ###

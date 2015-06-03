@@ -20,23 +20,26 @@ $ savepass --help
   Usage: savepass <command>
 
   where <command> is one of:
-      add, new, list, ls,
-      remove*, rm*, get*
+      add, new, list, ls, remove, rm
 
   Example Usage:
       savepass add [OPTIONAL <flags>]
-      savepass ls
+      savepass --debug ls
+      savepass rm --file=myBank
 
-  Available add|new subcomand flags:
+  Global flags:
+      --debug
+          Enable debug output.
+
+  savepass add flags:
       --template=<templateName>
           Specify template name to be used. Available templates can be
           found in `templates/` folder.
       --keybase-user=<keybaseUsername>
           Encrypt output file for a different user then the one logged in.
       --name, --website, --login, --password, --email, --seed
-          Using those flags you can pass values, to be filled into a
-          template, directly from CLI. All flags accept strings or "null" to disable.
-          Flag --password can only be set to null
+          Pass values from CLI or disable by passing null or false.
+          NOTE: --password flag can only be disabled
 
   Specify configs in the json-formatted file:
       /Users/mee/.config/savepass/config.json
