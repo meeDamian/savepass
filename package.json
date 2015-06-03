@@ -1,6 +1,6 @@
 {
   "name": "savepass",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "CLI tool archiving your keybase.io-encrypted data to Google Drive",
   "main": "index.coffee",
   "preferGlobal": true,
