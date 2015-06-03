@@ -1,4 +1,6 @@
-# savepass [![Build Status](https://travis-ci.org/chester1000/savepass.svg)](https://travis-ci.org/chester1000/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) [ ![Codeship Status for chester1000/savepass](https://codeship.com/projects/71e48d30-e90c-0132-7604-26b28b7b5489/status?branch=master)](https://codeship.com/projects/82900)
+# savepass [![Build Status](https://travis-ci.org/chester1000/savepass.svg)](https://travis-ci.org/chester1000/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) ![Dependencies status](https://david-dm.org/chester1000/savepass.svg) [ ![Codeship Status for chester1000/savepass](https://codeship.com/projects/71e48d30-e90c-0132-7604-26b28b7b5489/status?branch=master)](https://codeship.com/projects/82900)
+
+
 
 This is a CLI tool managing preparing, encrypting and saving (to cloud) password/sensitive text files.
 
