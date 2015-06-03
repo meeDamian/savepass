@@ -1,5 +1,5 @@
 {
-  "name": "@meedamian/savepass",
+  "name": "savepass",
   "version": "0.4.4",
   "description": "CLI tool archiving your keybase.io-encrypted data to Google Drive",
   "main": "index.coffee",

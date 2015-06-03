@@ -5,7 +5,7 @@ This is a CLI tool managing preparing, encrypting and saving (to cloud) password
 ## Download
 
 ```
-$ npm i -g @meedamian/savepass
+$ npm i -g savepass
 ```
 
 ## Usage
