@@ -48,11 +48,9 @@ $ savepass --help
 
 ## Bugs and feedback
 
-If you discover a bug please report it to:
+If you discover a bug please report it [here](https://github.com/chester1000/savepass/issues/new).
 
-https://github.com/chester1000/savepass/issues/new
-
-Mail me at mee.damian@gmail.com, on twitter I'm [@meeDamian](http://twitter.com/meedamian).
+Mail me at mee DOT damian AT gmail THAT-LITTLE-ROUND-THING com, on twitter I'm [@meeDamian](http://twitter.com/meedamian).
 
 
 ## Licence
