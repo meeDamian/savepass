@@ -30,8 +30,8 @@
   },
   "homepage": "https://github.com/chester1000/savepass#readme",
   "engines": {
-    "node": ">=0.11",
-    "npm": ">=2.0"
+    "node": ">=4",
+    "npm": ">=3"
   },
   "dependencies": {
     "async": "^1.0.0",
