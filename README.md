@@ -1,4 +1,5 @@
-# savepass [![Build Status](https://travis-ci.org/chester1000/savepass.svg)](https://travis-ci.org/chester1000/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) [![Dependency Status](https://david-dm.org/chester1000/savepass.svg)](https://david-dm.org/chester1000/savepass) [![peerDependency Status](https://david-dm.org/chester1000/savepass/peer-status.svg)](https://david-dm.org/chester1000/savepass#info=peerDependencies)
+# savepass
+[![Build Status](https://travis-ci.org/chester1000/savepass.svg)](https://travis-ci.org/chester1000/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) [![Dependency Status](https://david-dm.org/chester1000/savepass.svg)](https://david-dm.org/chester1000/savepass) [![peerDependency Status](https://david-dm.org/chester1000/savepass/peer-status.svg)](https://david-dm.org/chester1000/savepass#info=peerDependencies)
 
 
 
