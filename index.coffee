@@ -1,22 +1,22 @@
 #!/usr/bin/env coffee
 'use strict'
 
-inquirer  = require 'inquirer'
-{exec}    = require 'child_process'
-async     = require 'async'
-chalk     = require 'chalk'
-meow      = require 'meow'
-path      = require 'path'
-fs        = require 'fs-extra'
+inquirer = require 'inquirer'
+{exec}   = require 'child_process'
+async    = require 'async'
+chalk    = require 'chalk'
+meow     = require 'meow'
+path     = require 'path'
+uuid     = require 'node-uuid'
+fs       = require 'fs-extra'
 
 
 #
 # constants
 #
-DEBUG = no
-
 TEMPLATES_DIR = 'templates'
 OUTPUTS_DIR = 'outputs'
+
 DEFAULT_CONFIG =
   path: OUTPUTS_DIR
   extensions: '.enc.txt'
@@ -29,146 +29,43 @@ AVAILABLE_FIELDS =
   email: {}
   seed: msg: 'Input 2FA seed'
 
+RE_FILELDS = new RegExp '<(' + (af for af of AVAILABLE_FIELDS).join('|') + ')>', 'g'
+
+
 #
 # log helpers
 #
 log = => console.log.apply @, arguments if DEBUG
-toJson = (obj) -> JSON.stringify obj, null, '  '
+print = => console.log.apply @, arguments
+toJson = (obj) -> JSON.stringify obj, null, 2
 logJson = (obj) -> log toJson obj
+pad = (text) ->
+  [].concat '',
+    text.split '\n'
+    ''
+    ''...
+  .join '\n  '
 
 #
 # utilities
+# TODO: fix that mess
 #
-getHomeDir = -> process.env.HOME or process.env.USERPROFILE
-getConfigPath = (name = 'savepass') -> path.join getHomeDir(), "/.config/#{name}/config.json"
-getOutputDir = ->
+getHomeDir = ->
+  process.env.HOME or process.env.USERPROFILE
+
+getConfigDir = (name = 'savepass') -> path.join getHomeDir(), "/.config/#{name}"
+getConfigPath = (name) -> path.join getConfigDir(name), 'config.json'
+
+getCacheDir = -> path.resolve getConfigDir(), 'cache'
+
+getTemplatesPath = -> path.resolve __dirname, TEMPLATES_DIR
+getTemplatePath = (name) -> path.resolve getTemplatesPath(), name
+
+getOutputDir = (config) ->
   path.resolve unless config.path then OUTPUTS_DIR else config.path.replace /^~/, getHomeDir()
 
-getFullFilePath = (fileName) -> path.resolve getOutputDir(), fileName
-
-
-getQuestionFor = (fieldType) ->
-  base = AVAILABLE_FIELDS[fieldType]
-
-  type: base.type ? 'input'
-  name: fieldType
-  message: base.msg ? 'Input your ' + fieldType
-
-getChoicesFrom = (templates) ->
-  templates.map (v, i) ->
-    name: v.name
-    value: i
-
-getFrom = (templates) -> (i) -> templates[i]
-
-getConfig = (name = 'keybase', cb) ->
-  if typeof name is 'function'
-    [name, cb] = ['savepass', name]
-
-  else if name is 'self'
-    name = 'savepass'
-
-  fs.readJson getConfigPath(name), cb
-
-
-config = {}
-readOwnConfig = (next) ->
-  getConfig (err, data) ->
-    if err and err.code is 'ENOENT'
-      log 'creating config file...'
-
-      config = DEFAULT_CONFIG
-
-      log 'config (new):', toJson config
-
-      fs.outputJson err.path, config, next
-
-    else
-      config = data
-      log 'config (file):', toJson config
-      next()
-
-getExtension = ->
-  config.extensions or DEFAULT_CONFIG.extensions
-
-templates = []
-
-filterTemplates = (filter) ->
-  templates.filter (t) -> -1 < t.fileName.indexOf filter
-
-# read templates from `templates` dir
-readTemplates = (next) ->
-  templatesDir = path.resolve __dirname, TEMPLATES_DIR
-
-  readTemplate = (template, next) ->
-    tempPath = path.resolve templatesDir, template
-
-    fs.readFile tempPath, encoding: 'utf8', (err, fileContent) ->
-      if err
-        next err
-        return
-
-      re = new RegExp('<(' + (af for af of AVAILABLE_FIELDS).join('|') + ')>', 'g')
-
-      templates.push
-        file: tempPath
-        fileName: template
-        fileContent: fileContent
-        fields: m[1] while m = re.exec fileContent
-        name:
-          template.replace /\.temp$/, ''
-            .replace /-/g, ' '
-            .split ' '
-            .map (word) ->
-              word.charAt(0).toUpperCase() +
-              word.substr 1
-            .join ' '
-
-      next()
-
-  fs.readdir templatesDir, (err, files) ->
-    if err
-      console.error 'not even directory for templates exist.', toJson err
-      return
-
-    async.each files, readTemplate, (err) ->
-      if err
-        console.error 'reading template file failed... apparently', err
-        return
-
-      log "#{templates.length} templates read:", templates.map (t) -> t.fileName
-      next()
-
-getEncryptedFilesList = (cb) ->
-  fs.readdir getOutputDir(), (err, files) ->
-    if err
-      console.error err
-      cb err
-
-    fileList = files.filter (fileName) -> new RegExp('.enc.txt$').test fileName
-    log fileList
-
-    cb null, fileList
-
-colorFilesList = (files, opts = {}) ->
-  opts.leadingAsterix ?= true
-  opts.returnAsKeyValue ?= false
-
-  files
-    .map (fileName) ->
-      l = ['']
-      l.push chalk.green '*' if opts.leadingAsterix
-      l.push chalk.bold(
-        fileName
-          .replace new RegExp(getExtension() + '$'), ''
-          .replace /[-_]/g, ' '
-        ), chalk.dim "(#{fileName})"
-      l = l.join ' '
-
-      return l unless opts.returnAsKeyValue
-
-      name: l
-      value: fileName
+getFullFilePath = (config, fileName) ->
+  path.resolve getOutputDir(config), fileName
 
 
 cli = meow
@@ -176,7 +73,8 @@ cli = meow
     'Usage: ' + chalk.bold 'savepass <command>'
     ''
     'where <command> is one of:'
-    '    add, new, list, ls, remove, rm'
+    '    add, new, encrypt, list, ls, getAll'
+    '    get, decrypt, remove, rm'
     ''
     'Example Usage:'
     '    savepass add [OPTIONAL <flags>]'
@@ -191,132 +89,237 @@ cli = meow
     '    ' + chalk.bold('--template') + '=<templateName>'
     '        Specify template name to be used. Available templates can be'
     '        found in `templates/` folder.'
+
     '    ' + chalk.bold('--keybase-user') + '=<keybaseUsername>'
     '        Encrypt output file for a different user then the one logged in.'
+
     '    ' + (chalk.bold("--#{f}") for f of AVAILABLE_FIELDS).join ', '
     '        Pass values from CLI or disable by passing null or false. '
     '        ' + chalk.red('NOTE: ') + chalk.bold('--password') + ' flag can only be disabled'
+    ''
+    chalk.bold('savepass get') + '/' + chalk.bold('rm') + ' flags:'
+    '    ' + chalk.bold('--file') + '=<file>'
+    '        Specify file to be acted on. If there\'s no direct match,'
+    '        param will be used as a filter.'
     ''
     'Specify configs in the json-formatted file:'
     '    ' + getConfigPath()
   ].join '\n'
 
-DEBUG = yes if cli.flags.debug
-
-log 'cli flags:', cli.input, toJson cli.flags
+DEBUG = !!cli.flags.debug
 
 
-async.parallel [
-  readTemplates
-  readOwnConfig
+prompt = (obj) ->                   new Promise (resolve, reject) ->
+  inquirer.prompt obj, resolve
 
-], (err) ->
-  if err
-    console.error err
+cache = (content, name) ->          new Promise (resolve, reject) ->
+  name = (if name then name + '.' else '') + uuid.v4() + '.bak.enc'
+  tmpPath = path.resolve getCacheDir(), name
+  log "#{name} caching…"
+  fs.outputFile tmpPath, content, (err) ->
+    if err
+      reject err
+      return
+
+    resolve name
+
+getConfig = ->                      new Promise (resolve, reject) ->
+  fs.readJson getConfigPath(), (err, data) ->
+    if err and err.code is 'ENOENT'
+      log 'creating config file...'
+      fs.outputJson err.path, DEFAULT_CONFIG, (err) ->
+        log 'config (new):', toJson DEFAULT_CONFIG
+        resolve DEFAULT_CONFIG
+      return
+
+    log 'config (file):', toJson data
+    resolve data
+
+getKeybaseMe = ->                   new Promise (resolve, reject) ->
+  fs.readJson getConfigPath('keybase'), (err, data) ->
+    if err
+      reject err
+      return
+
+    log 'keybase own config (file):', toJson data
+    resolve data.user.name
+
+getKeybaseUser = ->                 new Promise (resolve, reject) ->
+  if cli.flags.keybaseUser
+    resolve cli.flags.keybaseUser
     return
 
-  switch cli.input[0]
-    when 'add', 'new', undefined
+  resolve getKeybaseMe()
 
-      # AKA save to a file
-      step6 = (path, content) ->
-        console.log 'saving...'
+keybaseVerify = ([encText, me]) ->  new Promise (resolve, reject) ->
+  cmd = [
+    'keybase --log-format=plain pgp verify'
+    "-S #{me}"
+    "-m '#{encText}'"
+  ].join ' '
 
-        fs.outputFile path, content, (err) ->
-          return console.error err if err
+  log 'keybase(verify):', chalk.white cmd
 
-          console.log 'success!'
+  exec cmd, (err, stdout, stderr) ->
+    if err
+      reject err
+      return
+
+    log stderr
+
+    isVerified = -1 isnt stderr.indexOf "Signature verified. Signed by #{me}"
+    resolve {isVerified, encText}
+
+keybaseEncrypt = ({user, text}) ->  new Promise (resolve, reject) ->
+  cmd = [
+      'keybase pgp encrypt'
+      '-s'
+      '-y'
+      "-m '#{text}'"
+      user
+    ].join ' '
+
+  log 'keybase(encrypt):', chalk.white cmd
+
+  exec cmd, (err, encText, stderr) ->
+    if err
+      reject err
+      return
+
+    print pad stderr
+    cache(encText).then (name) -> log "#{name} cached."
+
+    resolve encText
+
+keybaseDecrypt = (file) ->          new Promise (resolve, reject) ->
+  cmd = [
+    'keybase --log-format=plain pgp decrypt'
+    "-i '#{file}'"
+  ].join ' '
+
+  log 'keybase(decrypt):', chalk.white cmd
+
+  exec cmd, (err, something, stderr) ->
+    if err
+      reject err
+      return
+
+    if -1 != stderr.indexOf '[ERRO]'
+      reject stderr
+      return
+
+    # additional Keybase info
+    log pad stderr
+
+    resolve something
+
+getTemplate = (name) ->             new Promise (resolve, reject) ->
+  locPath = getTemplatePath name
+  fs.readFile locPath, encoding:'utf8', (err, fileContent) ->
+    if err
+      reject err
+      return
+
+    resolve
+      file: locPath
+      fileName: name
+      fileContent: fileContent
+      fields: m[1] while m = RE_FILELDS.exec fileContent
+      name:
+        name.replace /\.temp$/, ''
+          .replace /-/g, ' '
+          .split ' '
+          .map (word) ->
+            word.charAt(0).toUpperCase() +
+            word.substr 1
+          .join ' '
+
+getTemplates = ->                   new Promise (resolve, reject) ->
+  fs.readdir getTemplatesPath(), (err, files) ->
+    if err
+      log 'no templates available', toJson err
+      reject err
+      return
+
+    Promise.all(files.map getTemplate)
+      .then resolve
+      .catch reject
+
+getSavedFiles = (config) ->         new Promise (resolve, reject) ->
+  fs.readdir getOutputDir(config), (err, files) ->
+    if err
+      log "error reading dir: #{getOutputDir config}", toJson err
+      reject err
+      return
+
+    fileList = files.filter (fileName) -> new RegExp('.enc.txt$').test fileName
+    log 'Saved files:', toJson fileList
+    resolve fileList
+
+formatSavedFiles = (files, opts = {}) ->
+  opts.showRaw ?= true
+
+  files
+    .map (fileName) ->
+      l = ['']
+      l.push chalk.green '*' if opts.showRaw
+      l.push chalk.bold(
+        fileName
+          .replace new RegExp(opts.ext + '$'), ''
+          .replace /[-_]/g, ' '
+        ), chalk.dim "(#{fileName})"
+      l = l.join ' '
+
+      if opts.showRaw
+        return l
+
+      name: l
+      value: fileName
 
 
-      # AKA get file name and path
-      step5 = (fileName, contents) ->
-        log 'file name:', fileName
+switch cli.input[0]
+  when 'add', 'new', 'encrypt', undefined
+    getTemplates()
+      .catch (err) -> log err
 
-        q =
-          name: 'fileName'
-          message: 'How do you want to name the file?'
+      # step 1: AKA choose template
+      .then step1 = (templates) ->
+        userFilter = cli.flags.template?.toLowerCase()
 
-        q.default = fileName.replace '.', '-' if fileName
+        matching = templates.filter (t) ->
+          -1 < t.fileName.indexOf userFilter
 
-        filePath = null
+        if matching.length is 1
+          return matching[0]
 
-        qs = [
-          q
-        ,
-          name: 'confirm'
-          type: 'confirm'
-          message: (prevAnswer) ->
-            outputDir = getOutputDir()
+        if matching.length is 0
+          matching = templates
+          if userFilter
+            print chalk.red 'No match found.\n'
 
-            log 'Output files dir:', outputDir
+        choices = matching.map (v, i) ->
+          name: v.name
+          value: i
 
-            filePath = path.resolve outputDir, prevAnswer.fileName + (config.extensions or DEFAULT_CONFIG.extensions)
+        prompt
+          type: 'list'
+          name: 'type'
+          message: 'Which template do you want to use?'
+          choices: choices
+          filter: (i) -> matching[i]
+        .then (answer) ->
+          return answer.type
 
-            [
-              'File will be saved as:'
-              ' ' + filePath
-            ].join '\n'
-        ]
-
-        inquirer.prompt qs, (answers) ->
-          unless answers.confirm
-            step5 answers.fileName, contents
-            return
-
-          step6 filePath, contents
-
-      # AKA keybase encrypt and sign
-      # NOTE: that step requires internet!
-      step4 = (name, text) ->
-        getKeybaseUser = (cb) ->
-          if cli.flags.keybaseUser
-            cb cli.flags.keybaseUser
-            return
-
-          getConfig 'keybase', (err, data) ->
-            cb data.user.name
-
-        getKeybaseUser (keybaseUser) ->
-          console.log "Encrypting and signing for: #{keybaseUser}"
-          exec [
-            'keybase encrypt' # encrypt the message
-            '-s' # but also sign
-            "-m '#{text}'" # pass the message
-            keybaseUser # use my public key
-
-          ].join(' '), (err, stdout, stderr) ->
-            if err or stderr
-              console.error err if err
-              console.error stderr if stderr
-              return
-
-            log 'encrypted file:\n', stdout
-
-            step5 name, stdout
-
-
-      # AKA fill template with data
-      step3 = (template, data) ->
-        log 'Template and data before merge:\n', template, toJson data
-
-        template = template.replace "<#{key}>", val ? '' for key, val of data
-
-        inquirer.prompt
-          type: 'confirm'
-          name: 'proceed'
-          message: [ 'The following content will be encrypted and saved:'
-            ''
-            template
-            'Do you want to proceed?'
-          ].join '\n'
-
-        , (answers) ->
-          step4 data.website, template if answers.proceed
-
-
-      # AKA get ALL THE DATA
-      step2 = (chosenTemplate) ->
+      # step 2: AKA get ALL THE DATA
+      .then step2 = (chosenTemplate) ->
         log 'chosen template:', toJson chosenTemplate
+
+        getQuestionFor = (fieldType) ->
+          base = AVAILABLE_FIELDS[fieldType]
+
+          type: base.type ? 'input'
+          name: fieldType
+          message: base.msg ? 'Input your ' + fieldType
 
         # always ask for password - ignore CLI flag
         questions = [
@@ -333,111 +336,231 @@ async.parallel [
           unless encryptables[field]
             questions.push getQuestionFor field
 
-          # ignore fields explicitly disabled
+          # ignore explicitly disabled fields
           else if encryptables[field] in ['null', 'false']
             encryptables[field] = null
 
         log 'encryptables (CLI)', toJson encryptables
         log 'questions', toJson questions
 
-        # ask for still missing data
-        inquirer.prompt questions, (answers) ->
-          log 'answers', toJson answers
+        prompt questions
+          .then (answers) ->
+            log 'answers', toJson answers
 
-          # merge CLI and prompts
-          for a of encryptables when answers[a] and answers[a] isnt ''
-            encryptables[a] = answers[a]
+            # merge CLI and prompts
+            for a of encryptables when answers[a] and answers[a] isnt ''
+              encryptables[a] = answers[a]
 
-          log 'encryptables (ALL)', toJson encryptables
+            log 'encryptables (ALL)', toJson encryptables
 
-          step3 chosenTemplate.fileContent, encryptables
+            return {
+              template: chosenTemplate.fileContent
+              encryptables
+            }
 
+      # step 3: AKA fill template with data
+      .then step3 = ({template, encryptables: data}) ->
+        log 'Template and data before merge:\n', template, toJson data
 
-      # AKA choose template
-      step1 = (templates) ->
-        inquirer.prompt
-          type: 'list'
-          name: 'type'
-          message: 'Which template do you want to use?'
-          choices: getChoicesFrom templates
-          filter: getFrom templates
+        for key, val of data
+          template = template.replace "<#{key}>", val ? ''
 
-        , (answer) -> step2 answer.type
+        prompt
+          type: 'confirm'
+          name: 'proceed'
+          message: [ 'The following content will be encrypted and saved:'
+            ''
+            template
+            'Do you want to proceed?'
+          ].join '\n'
+        .then (answer) ->
+          unless answer.proceed
+            throw 'silent'
 
+          return {
+            name: data.website
+            text: template
+          }
 
-      # step0
-      matchingTemplates = filterTemplates cli.flags.template
-      switch matchingTemplates.length
-        when 0 then step1 templates # no `--templates=?` flag passed
-        when 1 then step2 matchingTemplates[0] # exactly one match
-        else step1 matchingTemplates # more than one match
+      # NOTE: requires internet!
+      # step 4: AKA keybase encrypt and sign
+      .then step4 = ({name, text}) ->
+        getKeybaseUser()
+          .then (user) ->
+            print chalk.white('Encrypting and signing for:'), chalk.green user
 
-    when 'list', 'ls'
-      getEncryptedFilesList (err, fileList) ->
-        unless err
-          fileList = colorFilesList(fileList).join '\n'
+            Promise.all [
+              keybaseEncrypt {user, text}
+              getKeybaseMe()
+            ]
+            .then keybaseVerify
+            .then ({isVerified, encText}) ->
+              print chalk.white('Signature verification:'), if isVerified then chalk.green('PASSED') else chalk.red 'FAILED'
 
-        console.log "Your encrypted files (from #{chalk.bold getOutputDir()}):\n"
-        console.log fileList
+              {name, encText}
 
-    when 'remove', 'rm'
+      # step 5: AKA get file name and path
+      .then step5 = ({name, encText}) ->
+        log 'file name:', name
 
-      remove = (files, cb) ->
-        log 'Running REMOVE on: ', toJson files
-        async.map files, fs.unlink, cb
+        getConfig().then (config) ->
+          fullPath = undefined
 
-      removeFiles = (files) ->
-        fullPaths = files.map getFullFilePath
+          question =
+            name: 'fileName'
+            message: 'How do you want to name the file?'
+          if name
+            question.default = name.replace '.', '-'
 
-        remove fullPaths, (err) ->
+          confirmation =
+            name: 'confirm'
+            type: 'confirm'
+            message: (prevAnswer) ->
+              fullPath = getFullFilePath config, prevAnswer.fileName + config.extensions
+              [
+                'File will be saved as:'
+                ' ' + fullPath
+              ].join '\n'
+
+          askFileName = ->
+            prompt [question, confirmation]
+              .then (answers) ->
+                unless answers.confirm
+                  throw 'retry'
+
+                {fullPath, encText}
+
+              .catch (err) -> askFileName()
+
+          askFileName()
+
+      # step6: AKA save to a file
+      .then step6 = ({fullPath, encText}) ->
+        print 'saving…'
+
+        fs.outputFile fullPath, encText, (err) ->
           if err
-            console.error 'Bummer, there was an error:', err
+            print chalk.red('FAIL'), err
             return
 
-          console.log "File#{if fullPaths.length > 1 then 's' else ''} successfully removed."
+          print chalk.green 'Success!'
 
+      .catch (err) ->
+        if err isnt 'silent'
+          console.log err
 
-      askConfirmation = (filesToBeRemoved) ->
-        info = if filesToBeRemoved.length is 1 then 'This file' else 'Those files'
-        info += " will be PERMANENTLY removed (from #{getOutputDir()}):"
+  when 'ls', 'list', 'getAll'
+    getConfig().then (config) ->
+      getSavedFiles(config).then (fileList) ->
+        print "Your encrypted files (from #{chalk.bold getOutputDir config.path}):\n"
+        print formatSavedFiles(fileList, ext: config.extensions).join '\n'
+
+      .catch (err) ->
+        console.error 'Error loading files...', err
+
+  when 'get', 'decrypt'
+    getConfig().then (config) ->
+      getSavedFiles(config).then (fileList) ->
+        userFilter = cli.flags.file?.toLowerCase()
+
+        matching = fileList.filter (t) ->
+          -1 < t.replace(config.extensions, '').toLowerCase().indexOf userFilter
+
+        if matching.length is 1
+          return matching[0]
+
+        if matching.length is 0
+          matching = fileList
+          if userFilter
+            print chalk.red 'No match found.\n'
+
+        prompt
+          type: 'list'
+          name: 'fileName'
+          message: 'Which file do you want to decrypt?'
+          choices: formatSavedFiles matching,
+            showRaw: false
+            ext: config.extensions
+        .then (answer) -> answer.fileName
+
+      .then (fileName) ->
+        fullPath = getFullFilePath config, fileName
+        print 'Decrypting', chalk.white(fullPath) + '…'
+        fullPath
+
+      .then keybaseDecrypt
+      .then pad
+      .then print
+
+      .catch (err) ->
+        console.log err
+
+  when 'rm', 'remove'
+    getConfig().then (config) ->
+      getSavedFiles(config).then (fileList) ->
+        userFilter = cli.flags.file?.toLowerCase()
+
+        matching = fileList.filter (t) ->
+          -1 < t.replace(config.extensions, '').toLowerCase().indexOf userFilter
+
+        if matching.length is 1
+          return matching
+
+        if matching.length is 0
+          matching = fileList
+          if userFilter
+            print chalk.red 'No match found.\n'
+
+        prompt
+          type: 'checkbox'
+          name: 'fileNames'
+          message: 'Which files do you want to remove?'
+          choices: formatSavedFiles matching,
+            showRaw: false
+            ext: config.extensions
+        .then (answer) ->
+          answer.fileNames
+
+      # confirm removal
+      .then (fileNames) ->
+        quantity = if fileNames.length is 1 then 'This file' else 'Those files'
 
         msg = [
-          info
-          colorFilesList(filesToBeRemoved).join '\n'
-          '\nAre you sure?'
+          "#{quantity} will be PERMANENTLY removed (from #{getOutputDir(config)}):"
+          formatSavedFiles(fileNames).join '\n'
+          ''
+          'Are you sure?'
         ].join '\n'
 
-        inquirer.prompt
+        prompt
           type: 'confirm'
           message: msg
           name: 'confirmRemoval'
           default: false
 
-        , (answers) ->
-          removeFiles filesToBeRemoved if answers.confirmRemoval
+        .then (answer) ->
+          unless answer.confirmRemoval
+            throw 'Removal cancelled.'
 
+          return fileNames
 
-      removable = cli.flags.file
-      getEncryptedFilesList (err, files) ->
-        unless removable
-          inquirer.prompt
-            type: 'checkbox'
-            name: 'fileNames'
-            message: 'Which files do you want to remove?'
-            choices: colorFilesList(files, {leadingAsterix: false, returnAsKeyValue: true})
+      # Expand file names to full paths
+      .then (confirmedFileList) ->
+        confirmedFileList.map (file) ->
+          getFullFilePath config, file
 
-          , (answers) -> askConfirmation answers.fileNames
+      # Remove all files
+      .then (fullFilePaths) ->
+        log chalk.red('Permanently deleting'), toJson fullFilePaths
 
-        else
-          file = cli.flags.file
-          file += getExtension() unless new RegExp(getExtension() + '$').test file
+        async.map fullFilePaths, fs.unlink, (err) ->
+          if err
+            throw err
 
-          unless file in files
-            console.error 'Provided file not found in ' # add dir
-            return
+          print chalk.green 'deleted.'
 
-          askConfirmation [ file ]
-
+      .catch (err) ->
+        print chalk.red pad err
 
 ###
 

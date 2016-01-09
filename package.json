@@ -1,6 +1,6 @@
 {
   "name": "savepass",
-  "version": "0.4.9",
+  "version": "0.6.0",
   "description": "CLI tool archiving your keybase.io-encrypted data to Google Drive",
   "main": "index.coffee",
   "preferGlobal": true,
@@ -36,22 +36,20 @@
   "dependencies": {
     "async": "^1.0.0",
     "chalk": "^1.0.0",
-    "fs-extra": "^0.24.0",
-    "inquirer": "^0.10.1",
-    "meow": "^3.1.0"
-  },
-  "peerDependencies": {
-    "keybase": "^0.8.22"
+    "fs-extra": "^0.26.4",
+    "inquirer": "^0.11.1",
+    "meow": "^3.1.0",
+    "node-uuid": "^1.4.7"
   },
   "devDependencies": {
-    "del": "^1.2.0",
+    "del": "^2.2.0",
     "gulp": "^3.8.11",
     "gulp-coffee": "^2.3.1",
-    "gulp-coffeelint": "^0.5.0",
-    "gulp-insert": "^0.4.0",
+    "gulp-coffeelint": "^0.6.0",
+    "gulp-insert": "^0.5.0",
     "gulp-json-editor": "^2.2.1",
-    "gulp-load-plugins": "^0.10.0",
-    "gulp-shell": "^0.4.1",
+    "gulp-load-plugins": "^1.2.0",
+    "gulp-shell": "^0.5.1",
     "gulp-util": "^3.0.4"
   }
 }
