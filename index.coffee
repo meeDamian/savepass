@@ -51,7 +51,7 @@ pad = (text) ->
 #
 _getHomeDir = -> process.env.HOME or process.env.USERPROFILE
 
-getConfigPath = (dir='savepass', file='config.json') ->
+getConfigPath = (dir = 'savepass', file = 'config.json') ->
   path.resolve [
     _getHomeDir()
     '.config'
@@ -59,14 +59,14 @@ getConfigPath = (dir='savepass', file='config.json') ->
     file
   ]...
 
-getTemplatePath = (templateName='') ->
+getTemplatePath = (templateName = '') ->
   path.resolve [
     __dirname
     'templates'
     templateName
   ]...
 
-getOutputPath = ({path:p}, fileName='') ->
+getOutputPath = ({path: p}, fileName = '') ->
   path.resolve [
     p?.replace(/^~/, _getHomeDir()) ? OUTPUTS_DIR
     fileName
@@ -208,7 +208,7 @@ keybaseDecrypt = (file) -> new Promise (resolve, reject) ->
       reject err
       return
 
-    if -1 != stderr.indexOf '[ERRO]'
+    if -1 isnt stderr.indexOf '[ERRO]'
       reject stderr
       return
 
@@ -219,7 +219,7 @@ keybaseDecrypt = (file) -> new Promise (resolve, reject) ->
 
 getTemplate = (name) -> new Promise (resolve, reject) ->
   locPath = getTemplatePath name
-  fs.readFile locPath, encoding:'utf8', (err, fileContent) ->
+  fs.readFile locPath, encoding: 'utf8', (err, fileContent) ->
     if err
       reject err
       return
