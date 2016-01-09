@@ -18,34 +18,41 @@ You can either pass CLI flags or answer questions.
 ```
 $ savepass --help
 
-  CLI tool archiving your keybase.io-encrypted data to Google Drive
+CLI tool archiving your keybase.io-encrypted data to Google Drive
 
-  Usage: savepass <command>
+Usage: savepass <command>
 
-  where <command> is one of:
-      add, new, list, ls, remove, rm
+where <command> is one of:
+    add, new, encrypt, list, ls, getAll
+    get, decrypt, remove, rm
 
-  Example Usage:
-      savepass add [OPTIONAL <flags>]
-      savepass --debug ls
-      savepass rm --file=myBank
+Example Usage:
+    savepass add [OPTIONAL <flags>]
+    savepass --debug ls
+    savepass rm --file=myBank
 
-  Global flags:
-      --debug
-          Enable debug output.
+Global flags:
+    --debug
+        Enable debug output.
 
-  savepass add flags:
-      --template=<templateName>
-          Specify template name to be used. Available templates can be
-          found in `templates/` folder.
-      --keybase-user=<keybaseUsername>
-          Encrypt output file for a different user then the one logged in.
-      --name, --website, --login, --password, --email, --seed
-          Pass values from CLI or disable by passing null or false.
-          NOTE: --password flag can only be disabled
+savepass add flags:
+    --template=<templateName>
+        Specify template name to be used. Available templates can be
+        found in `templates/` folder.
+    --keybase-user=<keybaseUsername>
+        Encrypt output file for a different user then the one logged in.
+    --name, --website, --login, --password, --email, --seed
+        Pass values from CLI or disable by passing null or false.
+        NOTE: --password flag can only be disabled
 
-  Specify configs in the json-formatted file:
-      /Users/mee/.config/savepass/config.json
+savepass get/rm flags:
+    --file=<file>
+        Specify file to be acted on. If there's no direct match,
+        param will be used as a filter.
+
+Specify configs in the json-formatted file:
+    ~/.config/savepass/config.json
+
 
 ```
 
