@@ -110,13 +110,13 @@ cli = meow
     '    ' + getConfigPath()
   ].join '\n'
 
-DEBUG = !!cli.flags.debug
+DEBUG = cli.flags.debug
 
 
-prompt = (obj) ->                   new Promise (resolve, reject) ->
+prompt = (obj) -> new Promise (resolve, reject) ->
   inquirer.prompt obj, resolve
 
-cache = (content, name) ->          new Promise (resolve, reject) ->
+cache = (content, name) -> new Promise (resolve, reject) ->
   name = (if name then name + '.' else '') + uuid.v4() + '.bak.enc'
   tmpPath = path.resolve getConfigPath(null, 'cache'), name
   log "#{name} caching…"
@@ -127,7 +127,7 @@ cache = (content, name) ->          new Promise (resolve, reject) ->
 
     resolve name
 
-getConfig = ->                      new Promise (resolve, reject) ->
+getConfig = -> new Promise (resolve, reject) ->
   fs.readJson getConfigPath(), (err, data) ->
     if err and err.code is 'ENOENT'
       log 'creating config file...'
@@ -139,7 +139,7 @@ getConfig = ->                      new Promise (resolve, reject) ->
     log 'config (file):', toJson data
     resolve data
 
-getKeybaseMe = ->                   new Promise (resolve, reject) ->
+getKeybaseMe = -> new Promise (resolve, reject) ->
   fs.readJson getConfigPath('keybase'), (err, data) ->
     if err
       reject err
@@ -148,14 +148,14 @@ getKeybaseMe = ->                   new Promise (resolve, reject) ->
     log 'keybase own config (file):', toJson data
     resolve data.user.name
 
-getKeybaseUser = ->                 new Promise (resolve, reject) ->
+getKeybaseUser = -> new Promise (resolve, reject) ->
   if cli.flags.keybaseUser
     resolve cli.flags.keybaseUser
     return
 
   resolve getKeybaseMe()
 
-keybaseVerify = ([encText, me]) ->  new Promise (resolve, reject) ->
+keybaseVerify = ([encText, me]) -> new Promise (resolve, reject) ->
   cmd = [
     'keybase --log-format=plain pgp verify'
     "-S #{me}"
@@ -174,7 +174,7 @@ keybaseVerify = ([encText, me]) ->  new Promise (resolve, reject) ->
     isVerified = -1 isnt stderr.indexOf "Signature verified. Signed by #{me}"
     resolve {isVerified, encText}
 
-keybaseEncrypt = ({user, text}) ->  new Promise (resolve, reject) ->
+keybaseEncrypt = ({user, text}) -> new Promise (resolve, reject) ->
   cmd = [
       'keybase pgp encrypt'
       '-s'
@@ -195,7 +195,7 @@ keybaseEncrypt = ({user, text}) ->  new Promise (resolve, reject) ->
 
     resolve encText
 
-keybaseDecrypt = (file) ->          new Promise (resolve, reject) ->
+keybaseDecrypt = (file) -> new Promise (resolve, reject) ->
   cmd = [
     'keybase --log-format=plain pgp decrypt'
     "-i '#{file}'"
@@ -217,7 +217,7 @@ keybaseDecrypt = (file) ->          new Promise (resolve, reject) ->
 
     resolve something
 
-getTemplate = (name) ->             new Promise (resolve, reject) ->
+getTemplate = (name) -> new Promise (resolve, reject) ->
   locPath = getTemplatePath name
   fs.readFile locPath, encoding:'utf8', (err, fileContent) ->
     if err
@@ -238,7 +238,7 @@ getTemplate = (name) ->             new Promise (resolve, reject) ->
             word.substr 1
           .join ' '
 
-getTemplates = ->                   new Promise (resolve, reject) ->
+getTemplates = -> new Promise (resolve, reject) ->
   fs.readdir getTemplatePath(), (err, files) ->
     if err
       log 'no templates available', toJson err
@@ -249,7 +249,7 @@ getTemplates = ->                   new Promise (resolve, reject) ->
       .then resolve
       .catch reject
 
-getSavedFiles = (config) ->         new Promise (resolve, reject) ->
+getSavedFiles = (config) -> new Promise (resolve, reject) ->
   fs.readdir getOutputPath(config), (err, files) ->
     if err
       log "error reading dir: #{getOutputPath config}", toJson err
