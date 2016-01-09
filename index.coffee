@@ -48,25 +48,29 @@ pad = (text) ->
 
 #
 # utilities
-# TODO: fix that mess
 #
-getHomeDir = ->
-  process.env.HOME or process.env.USERPROFILE
+_getHomeDir = -> process.env.HOME or process.env.USERPROFILE
 
-getConfigDir = (name = 'savepass') -> path.join getHomeDir(), "/.config/#{name}"
-getConfigPath = (name) -> path.join getConfigDir(name), 'config.json'
+getConfigPath = (dir='savepass', file='config.json') ->
+  path.resolve [
+    _getHomeDir()
+    '.config'
+    dir
+    file
+  ]...
 
-getCacheDir = -> path.resolve getConfigDir(), 'cache'
+getTemplatePath = (templateName='') ->
+  path.resolve [
+    __dirname
+    'templates'
+    templateName
+  ]...
 
-getTemplatesPath = -> path.resolve __dirname, TEMPLATES_DIR
-getTemplatePath = (name) -> path.resolve getTemplatesPath(), name
-
-getOutputDir = (config) ->
-  path.resolve unless config.path then OUTPUTS_DIR else config.path.replace /^~/, getHomeDir()
-
-getFullFilePath = (config, fileName) ->
-  path.resolve getOutputDir(config), fileName
-
+getOutputPath = ({path:p}, fileName='') ->
+  path.resolve [
+    p?.replace(/^~/, _getHomeDir()) ? OUTPUTS_DIR
+    fileName
+  ]...
 
 cli = meow
   help: [
@@ -114,7 +118,7 @@ prompt = (obj) ->                   new Promise (resolve, reject) ->
 
 cache = (content, name) ->          new Promise (resolve, reject) ->
   name = (if name then name + '.' else '') + uuid.v4() + '.bak.enc'
-  tmpPath = path.resolve getCacheDir(), name
+  tmpPath = path.resolve getConfigPath(null, 'cache'), name
   log "#{name} caching…"
   fs.outputFile tmpPath, content, (err) ->
     if err
@@ -235,7 +239,7 @@ getTemplate = (name) ->             new Promise (resolve, reject) ->
           .join ' '
 
 getTemplates = ->                   new Promise (resolve, reject) ->
-  fs.readdir getTemplatesPath(), (err, files) ->
+  fs.readdir getTemplatePath(), (err, files) ->
     if err
       log 'no templates available', toJson err
       reject err
@@ -246,9 +250,9 @@ getTemplates = ->                   new Promise (resolve, reject) ->
       .catch reject
 
 getSavedFiles = (config) ->         new Promise (resolve, reject) ->
-  fs.readdir getOutputDir(config), (err, files) ->
+  fs.readdir getOutputPath(config), (err, files) ->
     if err
-      log "error reading dir: #{getOutputDir config}", toJson err
+      log "error reading dir: #{getOutputPath config}", toJson err
       reject err
       return
 
@@ -416,7 +420,7 @@ switch cli.input[0]
             name: 'confirm'
             type: 'confirm'
             message: (prevAnswer) ->
-              fullPath = getFullFilePath config, prevAnswer.fileName + config.extensions
+              fullPath = getOutputPath config, prevAnswer.fileName + config.extensions
               [
                 'File will be saved as:'
                 ' ' + fullPath
@@ -452,7 +456,7 @@ switch cli.input[0]
   when 'ls', 'list', 'getAll'
     getConfig().then (config) ->
       getSavedFiles(config).then (fileList) ->
-        print "Your encrypted files (from #{chalk.bold getOutputDir config.path}):\n"
+        print "Your encrypted files (from #{chalk.bold getOutputPath config}):\n"
         print formatSavedFiles(fileList, ext: config.extensions).join '\n'
 
       .catch (err) ->
@@ -484,7 +488,7 @@ switch cli.input[0]
         .then (answer) -> answer.fileName
 
       .then (fileName) ->
-        fullPath = getFullFilePath config, fileName
+        fullPath = getOutputPath config, fileName
         print 'Decrypting', chalk.white(fullPath) + '…'
         fullPath
 
@@ -526,7 +530,7 @@ switch cli.input[0]
         quantity = if fileNames.length is 1 then 'This file' else 'Those files'
 
         msg = [
-          "#{quantity} will be PERMANENTLY removed (from #{getOutputDir(config)}):"
+          "#{quantity} will be PERMANENTLY removed (from #{getOutputPath(config)}):"
           formatSavedFiles(fileNames).join '\n'
           ''
           'Are you sure?'
@@ -547,7 +551,7 @@ switch cli.input[0]
       # Expand file names to full paths
       .then (confirmedFileList) ->
         confirmedFileList.map (file) ->
-          getFullFilePath config, file
+          getOutputPath config, file
 
       # Remove all files
       .then (fullFilePaths) ->
