@@ -1,6 +1,5 @@
 # savepass
-[![Codacy Badge](https://api.codacy.com/project/badge/grade/8de1fd8bf738407eba9f187a8a6778b3)](https://www.codacy.com/app/meeDamian/savepass) [![Build Status](https://travis-ci.org/chester1000/savepass.svg)](https://travis-ci.org/chester1000/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) [![Dependency Status](https://david-dm.org/chester1000/savepass.svg)](https://david-dm.org/chester1000/savepass)
-
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/8de1fd8bf738407eba9f187a8a6778b3)](https://www.codacy.com/app/meeDamian/savepass) [![Build Status](https://travis-ci.org/meeDamian/savepass.svg)](https://travis-ci.org/meeDamian/savepass) [![npm version](https://badge.fury.io/js/savepass.svg)](http://badge.fury.io/js/savepass) [![Dependency Status](https://david-dm.org/meeDamian/savepass.svg)](https://david-dm.org/meeDamian/savepass)
 
 
 This is a CLI tool managing preparing, encrypting and saving (to cloud) password/sensitive text files.
@@ -58,11 +57,11 @@ Specify configs in the json-formatted file:
 
 ## Bugs and feedback
 
-If you discover a bug please report it [here](https://github.com/chester1000/savepass/issues/new).
+If you discover a bug please report it [here](https://github.com/meeDamian/savepass/issues/new).
 
-Mail me at mee DOT damian AT gmail THAT-LITTLE-ROUND-THING com, on twitter I'm [@meeDamian](http://twitter.com/meedamian).
+Mail me bugs@meedamian.com, on twitter I'm [@meeDamian](http://twitter.com/meedamian).
 
 
 ## Licence
 
-MIT @ [Damian Mee](http://meedamian.com)
+MIT @ [Damian Mee](https://meedamian.com)
